@@ -1,6 +1,9 @@
 from discord.ext import commands, pages
-from discord import Embed, Colour
+from discord import Embed, Colour, File
+
 from .errors import *
+from common import get_team_name, get_integers
+from result import load_file, export_file, EmptyResult, NotAcceptableContent
 
 
 
@@ -97,9 +100,49 @@ class Admin(commands.Cog, name='Admin'):
         ).send(ctx, target=ctx.author)
 
 
+    @commands.is_owner()
+    @commands.command(name='mexport')
+    async def mexport(self, ctx: commands.Context, id: int) -> None:
+        guild = self.bot.get_guild(id)
+
+        if guild is None:
+            raise NotFound
+
+        name = get_team_name(id) or guild.name
+
+        try:
+            await ctx.author.send(f'{name}の戦績を出力しました。', file= File(export_file(id, name), filename=f'{guild.id}.csv'))
+            return
+        except EmptyResult:
+            await ctx.author.send(f'{name}は戦績を登録していません。', delete_after=10.0)
+
+
+    @commands.is_owner()
+    @commands.command(name='mload')
+    async def mload(self, ctx: commands.Context) -> None:
+
+        try:
+            guild = self.bot.get_guild(get_integers(ctx.message.attachments[0].filename)[0])
+        except:
+            raise NotFound
+
+        if not ctx.message.attachments[0].filename.endswith('csv'):
+            await ctx.author.send('CSVファイルのみ有効です。', delete_after=10.0)
+            return
+
+        await self.mexport(ctx, guild.id)
+
+        try:
+            await load_file(guild.id, ctx.message.attachments[0])
+            await ctx.author.send(f'{guild.name}の戦績を変更しました。')
+        except NotAcceptableContent:
+            await ctx.author.send('不正な内容が含まれています。', delete_after=10.0)
+            return
+
+
     @commands.Cog.listener('on_command_error')
     async def error_handler(self, ctx: commands.Context, error: commands.CommandError) -> None:
 
         if isinstance(error, NotFound):
-            await ctx.send('Not found', delete_after=10.0)
+            await ctx.author.send('Not found', delete_after=10.0)
             return
