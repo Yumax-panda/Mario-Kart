@@ -12,6 +12,7 @@ from mogi.cog import Mogi
 from utility.cog import Utility
 from result.cog import Result
 from handsup.cog import HandsUp
+from admin.cog import Admin
 from team.components import VoteView
 
 import json
@@ -77,7 +78,8 @@ for cog in {
     Mogi,
     Utility,
     Result,
-    HandsUp
+    HandsUp,
+    Admin
 }:
     bot.add_cog(cog(bot))
 
