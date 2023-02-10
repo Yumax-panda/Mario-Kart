@@ -15,8 +15,6 @@ from handsup.cog import HandsUp
 from admin.cog import Admin
 from team.components import VoteView
 
-import json
-
 config = json.loads(os.environ['CONFIG'])
 
 logging.basicConfig(level=logging.INFO)
