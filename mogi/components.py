@@ -287,6 +287,10 @@ class MogiMessage:
             if track is None:
                 track = Track.get_track(message.content)
             if MogiMessage.verify(message):
+           
+                if message.author.id != MY_ID:
+                    continue
+
                 msg = MogiMessage.convert(message)
                 if msg.status == Status.ARCHIVE:
                     if include_archive:
