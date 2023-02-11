@@ -5,7 +5,8 @@ from discord import (
     slash_command,
     Option,
     Embed,
-    Colour
+    Colour,
+    Message
 )
 from discord.ext import commands, pages
 import asyncio
@@ -127,48 +128,6 @@ class Utility(commands.Cog, name='Utility'):
         return
 
 
-    @commands.command(
-        name = 'fm',
-        aliases = ['friend', 'fc'],
-        description = 'Search MMR from Switch FC',
-        brief = 'フレコを抽出して一括でMMR検索',
-        usage = '!fm <text>',
-        hidden = False
-    )
-    async def fm(self, ctx: commands.Context, *, text: str) -> None:
-        _RE = re.compile(r'[0-9]{4}\-[0-9]{4}\-[0-9]{4}')
-        inputs: list[str] = _RE.findall(text)
-        tasks = [asyncio.create_task(get_lounger(fc = fc)) for fc in inputs]
-        players: list[Optional[dict]] = await asyncio.gather(*tasks, return_exceptions = False)
-
-        count: int = 0
-        total_mmr: int = 0
-        content: str = ''
-
-        for player in sorted(
-            [p for p in players if p is not None and not p.get('isHidden')],
-            reverse = True,
-            key = lambda p: p['mmr']
-        ):
-            count += 1
-            content += f'{str(count).rjust(3)}: [{player["name"]}]({MKC_URL}{player["registryId"]}) (MMR: {player["mmr"]})\n'
-            total_mmr += player["mmr"]
-            inputs.remove(player['switchFc'])
-
-        if count == 0:
-            raise PlayerNotFound
-
-        for fc in inputs:
-            content +=f"N/A ({fc})\n"
-
-        e = LoungeEmbed(
-            mmr = total_mmr/count,
-            title = f'Average MMR: {total_mmr/count:.1f}',
-        )
-        e.description = content + f'\n**Rank** {e.rank}'
-        await ctx.send(embed = e)
-        return
-
 
     @commands.command(
         name = 'm',
@@ -180,6 +139,81 @@ class Utility(commands.Cog, name='Utility'):
     )
     async def mkmg_template(self, ctx: commands.Context, time: Optional[int] = None, host: str = ''):
         await ctx.send(await mkmg(ctx.guild, time = time, host = host.lower() == 'h'))
+
+
+
+    @staticmethod
+    async def from_fc(text: str, sort_values: Optional[bool] = None) -> Embed:
+        _RE = re.compile(r'[0-9]{4}\-[0-9]{4}\-[0-9]{4}')
+        inputs: list[str] = _RE.findall(text)
+        dummy = inputs.copy()
+        tasks = [asyncio.create_task(get_lounger(fc = fc)) for fc in inputs]
+        players: list[Optional[dict]] = await asyncio.gather(*tasks, return_exceptions = False)
+
+        count: int = 0
+        total_mmr: int = 0
+        content: str = ''
+
+        if sort_values is not None:
+            lineup: list[dict] = sorted(
+                [p for p in players if p is not None and not p.get('isHidden')],
+                reverse = bool(sort_values),
+                key = lambda p: p['mmr']
+            )
+        else:
+            lineup: list[dict] = [p for p in players]
+
+        for i, player in enumerate(lineup):
+
+            if player is not None:
+
+                if player.get('isHidden'):
+                    continue
+
+                count += 1
+                content += f'{str(count).rjust(3)}: [{player["name"]}]({MKC_URL}{player["registryId"]}) (MMR: {player["mmr"]})\n'
+                total_mmr += player["mmr"]
+                dummy.remove(player['switchFc'])
+            else:
+                content +=f"N/A ({inputs[i]})\n"
+                dummy.remove(inputs[i])
+
+        if count == 0:
+            raise PlayerNotFound
+
+        for fc in dummy:
+            content +=f"N/A ({fc})\n"
+
+        e = LoungeEmbed(
+            mmr = total_mmr/count,
+            title = f'Average MMR: {total_mmr/count:.1f}',
+        )
+        e.description = content + f'\n**Rank** {e.rank}'
+        return e
+
+
+
+    @commands.Cog.listener('on_message')
+    async def fm_message(self, message: Message) -> None:
+        payload: dict = {}
+
+        if message.author.bot:
+            return
+
+        try:
+            if message.content.lower().startswith('!fml'):
+                payload['embed'] = await Utility.from_fc(message.content, False)
+
+            elif message.content.lower().startswith('!fmh'):
+                payload['embed'] = await Utility.from_fc(message.content, True)
+
+            elif message.content.lower().startswith('!fm'):
+                payload['embed'] = await Utility.from_fc(message.content, None)
+        except PlayerNotFound:
+            payload['content'] = 'プレイヤーが見つかりません。\nPlayer not found.'
+
+        if payload:
+            await message.channel.send(**payload)
 
 
 
