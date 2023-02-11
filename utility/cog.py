@@ -211,23 +211,7 @@ class Utility(commands.Cog, name='Utility'):
                 payload['embed'] = await Utility.from_fc(message.content, None)
         except PlayerNotFound:
             payload['content'] = 'プレイヤーが見つかりません。\nPlayer not found.'
+            payload['delete_after'] = 10.0
 
         if payload:
             await message.channel.send(**payload)
-
-
-
-    @commands.Cog.listener('on_command_error')
-    async def error_handler(
-        self,
-        ctx: commands.Context,
-        error: commands.CommandError
-    ) -> None:
-        content: Optional[str] = None
-
-        if isinstance(error, PlayerNotFound):
-            content = 'プレイヤーが見つかりません。\nPlayer not found.'
-
-        if content is not None:
-            await ctx.send(content, delete_after = 10.0)
-            return
