@@ -1,4 +1,2 @@
-from errors import MyError
-
-class PlayerNotFound(MyError, Exception):
+class PlayerNotFound(Exception):
     pass
