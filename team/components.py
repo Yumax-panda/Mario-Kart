@@ -81,8 +81,8 @@ class VoteView(discord.ui.View):
         vote.sub -= {interaction.user}
         vote.drop -= {interaction.user}
         vote._data[select.values[0]] = ({interaction.user} | vote._data[select.values[0]]) & set(vote.role.members)
-        await interaction.followup.send(embed=vote.embed, view=VoteView(vote.lang), wait=True)
-        await interaction.message.delete()
+        await interaction.message.edit(embed=vote.embed, view=VoteView(vote.lang))
+        await interaction.followup.send({'ja': '投票を更新しました'}.get(interaction.locale, 'Updated!'), ephemeral=True)
         return
 
 
@@ -219,21 +219,28 @@ class VoteMessage:
             value = format_dt(self.dt, style='F'),
             inline = False
         )
-        if self.can | self.sub:
-            name = '参加 ' if self.lang == Lang.JA else 'Participation '
-            name += f'@{6-len(self.can)}' + (f'({len(self.sub)})' if self.sub else '')
-            txt = ','.join([m.mention for m in self.can]) + (f'({",".join([m.mention for m in self.sub])})' if self.sub else '')
-            e.add_field(name = name, value = txt, inline = False)
+        if self.can:
+            e.add_field(
+                name = ('参加 ' if self.lang == Lang.JA else 'Participation ') + f'@{6-len(self.can)}',
+                value = '> ' + ', '.join([str(m) for m in self.can]),
+                inline = False
+            )
+        if self.sub:
+            e.add_field(
+                name = '補欠' if self.lang == Lang.JA else 'Substitute',
+                value = '> ' + ', '.join([str(m) for m in self.sub]),
+                inline = False
+            )
         if self.drop:
             e.add_field(
                 name = '不参加' if self.lang == Lang.JA else 'Not participation',
-                value = ','.join([m.mention for m in self.drop]),
+                value = '> ' + ', '.join([str(m) for m in self.drop]),
                 inline = False
             )
         if self.unanswered:
             e.add_field(
                 name = '未回答' if self.lang == Lang.JA else 'Un-answered',
-                value = ','.join([m.mention for m in self.unanswered]),
+                value = '> ' + ', '.join([str(m) for m in self.unanswered]),
                 inline = False
             )
         return e
@@ -275,17 +282,17 @@ class VoteMessage:
             raise AuthorNotFound
 
         for field in e.fields:
+
             if field.name.startswith(('日時', 'Date')):
                 dt = datetime.fromtimestamp(get_integers(field.value)[0])
                 if  'Date' in field.name:
                     lang = Lang.EN
             elif field.name.startswith(('参加','Participation')):
-                number = get_integers(field.name)[0]
-                members = [message.guild.get_member(i) for i in get_integers(field.value)]
-                data['can'] = set(m for m in members[:6-number] if m)
-                data['sub'] = set(members) - data['can']
+                data['can'] = {message.guild.get_member_named(i) for i in field.value[2:].split(', ')} - {None}
+            elif field.name.startswith(('補欠', 'Substitute')):
+                data['sub'] = {message.guild.get_member_named(i) for i in field.value[2:].split(', ')} - {None}
             elif field.name.startswith(('不参加','Not participation')):
-                data['drop'] = {message.guild.get_member(i) for i in get_integers(field.value)}
+                data['drop'] = {message.guild.get_member_named(i) for i in field.value[2:].split(', ')} - {None}
         return VoteMessage(
             enemy = enemy,
             role = role,
