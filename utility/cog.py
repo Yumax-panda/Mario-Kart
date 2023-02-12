@@ -149,14 +149,14 @@ class Utility(commands.Cog, name='Utility'):
         dummy = inputs.copy()
         tasks = [asyncio.create_task(get_lounger(fc = fc)) for fc in inputs]
         players: list[Optional[dict]] = await asyncio.gather(*tasks, return_exceptions = False)
-
         count: int = 0
+        display_count: int = 0
         total_mmr: int = 0
         content: str = ''
 
         if sort_values is not None:
             lineup: list[dict] = sorted(
-                [p for p in players if p is not None and not p.get('isHidden')],
+                [p for p in players if p is not None and p.get('mmr') is not None],
                 reverse = bool(sort_values),
                 key = lambda p: p['mmr']
             )
@@ -166,29 +166,42 @@ class Utility(commands.Cog, name='Utility'):
         for i, player in enumerate(lineup):
 
             if player is not None:
+                display_count += 1
 
-                if player.get('isHidden'):
-                    continue
+                if player.get('mmr') is None:
+                    content += f'{str(display_count).rjust(3)}: [{player["name"]}]({MKC_URL}{player["registryId"]})\n'
+                else:
+                    count += 1
+                    content += f'{str(display_count).rjust(3)}: [{player["name"]}]({MKC_URL}{player["registryId"]}) (MMR: {player["mmr"]})\n'
+                    total_mmr += player["mmr"]
 
-                count += 1
-                content += f'{str(count).rjust(3)}: [{player["name"]}]({MKC_URL}{player["registryId"]}) (MMR: {player["mmr"]})\n'
-                total_mmr += player["mmr"]
                 dummy.remove(player['switchFc'])
             else:
                 content +=f"N/A ({inputs[i]})\n"
                 dummy.remove(inputs[i])
 
-        if count == 0:
+        if display_count == 0:
             raise PlayerNotFound
+
+
+        if sort_values is not None:
+            for placement in [p for p in players if p is not None and p.get('mmr') is None]:
+                display_count += 1
+                content += f'{str(display_count).rjust(3)}: [{placement["name"]}]({MKC_URL}{placement["registryId"]})\n'
+                dummy.remove(placement['switchFc'])
 
         for fc in dummy:
             content +=f"N/A ({fc})\n"
 
-        e = LoungeEmbed(
-            mmr = total_mmr/count,
-            title = f'Average MMR: {total_mmr/count:.1f}',
-        )
-        e.description = content + f'\n**Rank** {e.rank}'
+        if count >=1:
+            e = LoungeEmbed(
+                mmr = total_mmr/count,
+                title = f'Average MMR: {total_mmr/count:.1f}',
+            )
+            e.description = content + f'\n**Rank** {e.rank}'
+        else:
+            e = Embed(title = f'Players', color = Colour.yellow(), description = content)
+
         return e
 
 
