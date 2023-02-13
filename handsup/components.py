@@ -196,8 +196,8 @@ async def drop(
         if str(hour) not in recruit_hours:
             continue
 
-        recruit[str(hour)]['c'] = [i for i in recruit[str(hour)]['c'] if i not in member_ids]
-        recruit[str(hour)]['t'] = [i for i in recruit[str(hour)]['c'] if i not in member_ids]
+        recruit[str(hour)]['c'] = [i for i in recruit[str(hour)]['c'].copy() if i not in member_ids]
+        recruit[str(hour)]['t'] = [i for i in recruit[str(hour)]['t'].copy() if i not in member_ids]
 
     post_guild_info(guild.id, info)
     await drop_hours(guild, hours, members)
