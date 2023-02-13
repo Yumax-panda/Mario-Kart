@@ -117,13 +117,14 @@ class Lounge(commands.Cog, name='Team'):
             )
     ) -> None:
         await ctx.response.defer()
-        df = pd.DataFrame(await Lounge.get_players(role)).sort_values('mmr', ascending=False)
-        average = df['mmr'].mean()
+        players = [p for p in await Lounge.get_players(role) if p.get('mmr') is not None]
 
-        e = LoungeEmbed(
-            mmr = average,
-            title = f'Team MMR: {average:.1f}'
-        )
+        if not players:
+            raise PlayerNotFound
+
+        df = pd.DataFrame(players).sort_values('mmr', ascending=False)
+        average = df['mmr'].mean()
+        e = LoungeEmbed(mmr = average, title = f'Team MMR: {average:.1f}')
         txt = f'**Role**  {role.mention}\n\n'
 
         for i, player in enumerate(df.to_dict('records')):
@@ -131,7 +132,7 @@ class Lounge(commands.Cog, name='Team'):
 
         txt += f'\n**Rank**  {e.rank}'
         e.description = txt
-        await ctx.respond(embed= e)
+        await ctx.respond(embed = e)
 
 
     @team.command(
