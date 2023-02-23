@@ -237,7 +237,7 @@ class Lounge(commands.Cog, name='Team'):
     )
     async def team_name_show(self, ctx: ApplicationContext) -> None:
         await ctx.response.defer()
-        await ctx.respond(get_team_name(ctx.guild_id or ctx.guild.name))
+        await ctx.respond(get_team_name(ctx.guild_id) or ctx.guild.name)
 
 
 
