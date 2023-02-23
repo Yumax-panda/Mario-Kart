@@ -120,6 +120,7 @@ def search_results(guild_id:int, name: str) -> Union[ResultPaginator, list[str]]
     ).split('\n')
     win, lose, draw = len(df[df['diff']>0]), len(df[df['diff']<0]), len(df[df['diff']==0])
     return ResultPaginator(
+        top = f'vs **{name}**',
         body = lines[1:],
         header = lines[0],
         footer = f'__**Win**__:  {win}  __**Lose**__:  {lose}  __**Draw**__:  {draw}  [{len(df)}]'
