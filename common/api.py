@@ -117,7 +117,7 @@ def get_guild_info(guild_id: int) -> dict:
         return get_data(path)
     except NotFound:
         post_data(path, INITIAL_DETAILS)
-        return INITIAL_DETAILS
+        return INITIAL_DETAILS.copy()
 
 
 def post_guild_info(guild_id: int, params: dict) -> None:
@@ -132,7 +132,7 @@ def get_results(guild_id: int) -> list[dict]:
         return get_data(path)
     except NotFound:
         post_data(path,INITIAL_RESULTS)
-        return INITIAL_RESULTS
+        return INITIAL_RESULTS.copy()
 
 
 def post_results(guild_id: int, point: Point, enemy: str, dt: datetime) -> None:
