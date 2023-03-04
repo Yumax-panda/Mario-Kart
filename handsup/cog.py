@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, Callable, TypeVar
 from discord.ext import commands
 from discord import (
     slash_command,
@@ -13,6 +13,17 @@ from . import components
 from common import get_integers
 
 ContextLike = Union[ApplicationContext, commands.Context]
+T = TypeVar('T')
+
+def is_allowed_channel() -> Callable[[T], T]:
+
+    async def predicate(ctx: commands.Context) -> bool:
+        return ctx.channel.id not in [
+            847026955413225482,
+            1070670062052200528
+        ]
+
+    return commands.check(predicate)
 
 
 class HandsUp(commands.Cog, name='Match'):
@@ -180,6 +191,7 @@ class HandsUp(commands.Cog, name='Match'):
         usage = '!c [@members] <hours>',
         hidden = False
     )
+    @is_allowed_channel()
     async def can(
         self,
         ctx: commands.Context,
@@ -208,6 +220,7 @@ class HandsUp(commands.Cog, name='Match'):
         usage = '!t [@members] <hours>',
         hidden = False
     )
+    @is_allowed_channel()
     async def tentative(
         self,
         ctx: commands.Context,
@@ -232,6 +245,7 @@ class HandsUp(commands.Cog, name='Match'):
         usage = '!d [@members] <hours>',
         hidden = False
     )
+    @is_allowed_channel()
     async def drop(
         self,
         ctx: commands.Context,
@@ -256,6 +270,7 @@ class HandsUp(commands.Cog, name='Match'):
         usage = '!now',
         hidden = False
     )
+    @is_allowed_channel()
     async def now(self, ctx: commands.Context) -> None:
         await components.now(ctx)
         return
@@ -268,6 +283,7 @@ class HandsUp(commands.Cog, name='Match'):
         usage = '!out <hours>',
         hidden = False
     )
+    @is_allowed_channel()
     async def out(self, ctx: commands.Context, hours: commands.Greedy[int] = []) -> None:
 
         if not hours:
@@ -285,6 +301,7 @@ class HandsUp(commands.Cog, name='Match'):
         usage = '!clear',
         hidden = False
     )
+    @is_allowed_channel()
     async def clear(self, ctx: commands.Context) -> None:
         await components.clear(ctx)
         await ctx.send('募集をリセットしました。')
